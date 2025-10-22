@@ -16,5 +16,6 @@ contextBridge.exposeInMainWorld('api', {
   // Get current working directory from main
   getCwd: () => ipcRenderer.invoke('app:getCwd'),
   compileFile: (p) => ipcRenderer.invoke('compile:file', p),
-  runBinary: (b, input) => ipcRenderer.invoke('run:binary', b, input)
+  runBinary: (b, input) => ipcRenderer.invoke('run:binary', b, input),
+  runCommand: (cmd, cwd) => ipcRenderer.invoke('run:command', cmd, cwd)
 });

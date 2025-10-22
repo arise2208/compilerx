@@ -125,3 +125,20 @@ ipcMain.handle('run:binary', async (event, binaryPath, input) => {
 ipcMain.handle('app:getCwd', async () => {
   return process.cwd();
 });
+
+// Run shell command in terminal
+ipcMain.handle('run:command', async (event, command, cwd) => {
+  const { exec } = require('child_process');
+  const util = require('util');
+  const execPromise = util.promisify(exec);
+
+  try {
+    const { stdout, stderr } = await execPromise(command, {
+      cwd: cwd || process.cwd(),
+      timeout: 30000
+    });
+    return { stdout, stderr };
+  } catch (err) {
+    return { stdout: err.stdout || '', stderr: err.stderr || err.message };
+  }
+});

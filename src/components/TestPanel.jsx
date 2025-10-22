@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-export default function TestPanel({ compiledBinary, setConsole, activeFile }) {
+export default function TestPanel({ compiledBinary, setConsole, activeFile, theme }) {
   const [cases, setCases] = useState([{ input: '', expected: '' }])
   const [results, setResults] = useState([])
   // debug feature removed
@@ -57,9 +57,6 @@ export default function TestPanel({ compiledBinary, setConsole, activeFile }) {
         if (Array.isArray(parsed.cases)) {
           setCases(parsed.cases)
           setConsole([`Loaded ${parsed.cases.length} cases from ${jsonPath}`])
-          // initialize debug arrays
-          setDebugData(Array.from({ length: parsed.cases.length }, () => ''))
-          setShowDebug(Array.from({ length: parsed.cases.length }, () => false))
           return
         }
       } catch (e) {
@@ -228,63 +225,69 @@ export default function TestPanel({ compiledBinary, setConsole, activeFile }) {
     return () => window.removeEventListener('cpide:runAllTests', handler)
   }, [cases, compiledBinary, setConsole])
 
+  const bgColor = theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+  const textColor = theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+  const cardBg = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+  const inputBg = theme === 'dark' ? 'bg-black' : 'bg-gray-50'
+  const inputText = theme === 'dark' ? 'text-white' : 'text-gray-900'
+  const borderColor = theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+
   return (
-    <div className="p-2">
-      <div className="mb-2">Testcases</div>
-      <div className="space-y-2 overflow-auto h-[60vh]">
+    <div className={`p-3 ${bgColor}`}>
+      <div className={`mb-3 text-sm font-semibold ${textColor}`}>Test Cases</div>
+      <div className="space-y-2 overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
         {cases.map((c, i) => (
-          <div key={i} className="p-2 bg-gray-800 rounded">
-            <div className="flex items-center justify-between">
+          <div key={i} className={`p-3 ${cardBg} rounded-lg border ${borderColor} transition-all`}>
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="text-xs text-gray-400">Case {i+1}</div>
-                {results[i] && results[i].ok && <div className="text-green-400 text-xs">✅ PASS</div>}
+                <div className={`text-xs font-semibold ${textColor}`}>Case {i+1}</div>
+                {results[i] && results[i].ok && <div className="text-green-400 text-xs font-medium">✅ PASS</div>}
+                {results[i] && !results[i].ok && <div className="text-red-400 text-xs font-medium">❌ FAIL</div>}
               </div>
               <div className="flex gap-2 items-center">
-                <button className="px-2 bg-blue-600 rounded text-sm" onClick={() => runCase(i)}>Run</button>
-                <button className="px-2 bg-red-600 rounded text-sm" onClick={() => { deleteCaseOnDisk(i); setCases(cs=> { const copy=[...cs]; copy.splice(i,1); return copy }) }}>Delete</button>
-                <button className="px-2 bg-gray-600 rounded text-sm" onClick={() => setCollapsed(s => { const copy = [...(s||[])]; copy[i] = !copy[i]; return copy })}>{collapsed[i] ? 'Expand' : 'Collapse'}</button>
+                <button className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors" onClick={() => runCase(i)}>Run</button>
+                <button className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors" onClick={() => { deleteCaseOnDisk(i); setCases(cs=> { const copy=[...cs]; copy.splice(i,1); return copy }) }}>Delete</button>
+                <button className={`px-2 py-1 rounded text-xs transition-colors ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-300 hover:bg-gray-400'} ${textColor}`} onClick={() => setCollapsed(s => { const copy = [...(s||[])]; copy[i] = !copy[i]; return copy })}>{collapsed[i] ? '▼' : '▲'}</button>
               </div>
             </div>
 
-            {/* content area: collapsed when collapsed[i] is true */}
             <div className={collapsed[i] ? 'hidden' : ''}>
-              <div className="mt-2">Input</div>
-              <textarea className="w-full h-20 bg-black text-white p-1" value={c.input} onChange={e=> { const v=e.target.value; setCases(cs => { const copy=[...cs]; copy[i].input=v; return copy }) }} placeholder="input"></textarea>
+              <div className={`mt-2 text-xs font-medium ${textColor}`}>Input</div>
+              <textarea className={`w-full h-20 ${inputBg} ${inputText} p-2 mt-1 rounded border ${borderColor} font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500`} value={c.input} onChange={e=> { const v=e.target.value; setCases(cs => { const copy=[...cs]; copy[i].input=v; return copy }) }} placeholder="input"></textarea>
 
-              <div className="mt-2">Expected Output</div>
-              <textarea className="w-full h-20 bg-black text-white p-1 mt-1" value={c.expected} onChange={e=> { const v=e.target.value; setCases(cs => { const copy=[...cs]; copy[i].expected=v; return copy }) }} placeholder="expected output"></textarea>
+              <div className={`mt-2 text-xs font-medium ${textColor}`}>Expected Output</div>
+              <textarea className={`w-full h-20 ${inputBg} ${inputText} p-2 mt-1 rounded border ${borderColor} font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500`} value={c.expected} onChange={e=> { const v=e.target.value; setCases(cs => { const copy=[...cs]; copy[i].expected=v; return copy }) }} placeholder="expected output"></textarea>
 
-              <div className="mt-2">Actual Output</div>
-              <textarea className="w-full h-20 bg-black text-white p-1 mt-1" value={(results[i] && results[i].stdout) || ''} readOnly></textarea>
+              {results[i] && (
+                <>
+                  <div className={`mt-2 text-xs font-medium ${textColor}`}>Actual Output</div>
+                  <textarea className={`w-full h-20 ${inputBg} ${inputText} p-2 mt-1 rounded border ${borderColor} font-mono text-xs`} value={(results[i] && results[i].stdout) || ''} readOnly></textarea>
 
-              <div className="mt-2 text-sm">
-                {(results[i] && (
-                  <div className="space-y-1">
-                    <div>{results[i].ok ? <span className="text-green-400">✅ PASS</span> : <span className="text-red-400">❌ FAIL</span>}</div>
-                    {results[i].stderr && <div className="text-yellow-300">stderr: {results[i].stderr}</div>}
-                    {results[i].timedOut && <div className="text-yellow-300">Timed out</div>}
-                    {!results[i].ok && results[i].diff && results[i].diff.length > 0 && (
-                      <div className="mt-1 font-mono text-xs bg-black p-2 rounded">
-                        {results[i].diff.map((d, k) => (
-                          <div key={k} className={d.type==='same'? 'text-gray-300' : d.type==='added' ? 'text-green-300' : 'text-red-300'}>
-                            {d.type === 'same' ? '  ' : d.type === 'added' ? '+ ' : '- '}{d.line}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {/* Debug display */}
-                    {/* Debug UI removed */}
+                  <div className="mt-2 text-sm">
+                    <div className="space-y-1">
+                      <div>{results[i].ok ? <span className="text-green-400">✅ PASS</span> : <span className="text-red-400">❌ FAIL</span>}</div>
+                      {results[i].stderr && <div className="text-yellow-400">stderr: {results[i].stderr}</div>}
+                      {results[i].timedOut && <div className="text-yellow-400">Timed out</div>}
+                      {!results[i].ok && results[i].diff && results[i].diff.length > 0 && (
+                        <div className={`mt-2 font-mono text-xs ${inputBg} p-2 rounded border ${borderColor}`}>
+                          {results[i].diff.map((d, k) => (
+                            <div key={k} className={d.type==='same'? 'text-gray-400' : d.type==='added' ? 'text-green-400' : 'text-red-400'}>
+                              {d.type === 'same' ? '  ' : d.type === 'added' ? '+ ' : '- '}{d.line}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
-            {/* end content area */}
           </div>
         ))}
       </div>
-      <div className="mt-2 flex gap-2">
-        <button className="px-3 py-1 bg-indigo-600 rounded" onClick={addCase}>Add Case</button>
-        <button className="px-3 py-1 bg-green-600 rounded" onClick={runAll}>Run All</button>
+      <div className="mt-3 flex gap-2">
+        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors text-sm font-medium" onClick={addCase}>Add Case</button>
+        <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors text-sm font-medium" onClick={runAll}>Run All</button>
       </div>
     </div>
   )
